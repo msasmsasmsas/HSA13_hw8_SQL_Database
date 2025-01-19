@@ -54,9 +54,6 @@ SET GLOBAL max_allowed_packet = 268435456; -- 256M;
 -- Визначає максимальний розмір окремого пакета даних (наприклад, для BLOB, TEXT).
 -- Якщо значення занадто низьке, можуть виникати помилки типу "Packet too large".
 
-SET GLOBAL innodb_flush_log_at_trx_commit=2;
--- Дозволяє InnoDB записувати зміни в журнал одразу після коміту, але записувати на диск кожну секунду.
-
 SET GLOBAL innodb_log_buffer_size=67108864; -- 64M;
 -- Визначає розмір буфера для журналу транзакцій.
 -- 64M підходить для навантажених систем, допомагаючи зменшити кількість операцій запису на диск.
@@ -72,14 +69,44 @@ SET GLOBAL innodb_redo_log_capacity=536870912; -- 512M
 -- Визначає обсяг redo-журналу, який використовується для відновлення при збоях.
 
 
-
+SET GLOBAL innodb_flush_log_at_trx_commit=2;
+-- Дозволяє InnoDB записувати зміни в журнал одразу після коміту, але записувати на диск кожну секунду.
 
 SET autocommit = 0;
 
-
 CALL hsa13.insert_users_batch();
+-- 2.172 sec
+-- 2.156 sec
+
 
 SET autocommit = 1;
 
 
+
 SET GLOBAL innodb_flush_log_at_trx_commit=1;
+-- При кожному COMMIT, InnoDB:
+--    Записує (write) дані в журнал транзакцій (redo log).
+--    Виконує примусовий запис на диск (fsync).
+
+SET autocommit = 0;
+
+CALL hsa13.insert_users_batch();
+-- 2.516 sec
+-- 2.578 sec
+
+SET autocommit = 1;
+
+
+
+SET GLOBAL innodb_flush_log_at_trx_commit=0;
+-- При коміті транзакції:
+--    Лог записується лише у буфер.
+--    Фізичний запис у лог-файл та синхронізація з диском відбувається раз на секунду.
+
+SET autocommit = 0;
+
+CALL hsa13.insert_users_batch();
+-- 1.891 sec
+-- 1.875 sec
+
+SET autocommit = 1;
