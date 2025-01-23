@@ -1,3 +1,4 @@
+```sql
 # HSA13_hw8_SQL_Database
 
 -- SELECT * FROM hsa13.users
